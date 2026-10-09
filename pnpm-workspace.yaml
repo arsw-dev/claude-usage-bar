@@ -24,6 +24,10 @@ catalogs:
     # oxlint's type-aware rules, on TypeScript's own checker
     oxlint-tsgolint: 7.0.2003
 
+  # What the extension runs with, bundled into it
+  runtime:
+    zod: 4.6.5
+
   # The language, its Node types, and the git hooks
   tooling:
     '@types/node': 26.6.4
