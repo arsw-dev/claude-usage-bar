@@ -21,6 +21,9 @@
     "typecheck": "tsc",
     "test": "node --test \"src/**/*.test.ts\""
   },
+  "dependencies": {
+    "zod": "catalog:runtime"
+  },
   "devDependencies": {
     "@types/node": "catalog:tooling",
     "lefthook": "catalog:tooling",
