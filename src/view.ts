@@ -1,7 +1,7 @@
 // A reading as the status bar item shows it: a bar per usage window, its share used and the time until it resets, and a
 // colour from whichever window is fuller. Pure: the time comes in as an argument
 
-// One rate-limit window as Claude Code reports it: `five_hour` or `seven_day`, or another kind a gateway adds
+// One rate-limit window as Claude Code reports it: `five_hour`, `seven_day`, or a Claude gateway's `spend_limit`
 type UsageWindow = {
   kind: string;
   percentUsed: number;
@@ -22,8 +22,6 @@ type View = {
 };
 
 const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
 
 const BAR_CELLS = 10;
 const WARNING_PERCENT = 75;
@@ -32,11 +30,12 @@ const ERROR_PERCENT = 90;
 const LABELS: Readonly<Record<string, { short: string; long: string }>> = {
   five_hour: { short: '5h', long: '5-hour window' },
   seven_day: { short: '7d', long: 'Weekly' },
+  spend_limit: { short: 'Spend', long: 'Spend limit' },
 };
 
-const ORDER = ['five_hour', 'seven_day'];
+const ORDER = ['five_hour', 'seven_day', 'spend_limit'];
 
-// The two known windows in that order, anything else (a gateway's spend limit) after them
+// The known windows in that order, any kind a newer Claude Code adds after them, by its own name
 const rank = (kind: string): number => (ORDER.includes(kind) ? ORDER.indexOf(kind) : ORDER.length);
 
 const bar = (percent: number): string => {
@@ -47,19 +46,26 @@ const bar = (percent: number): string => {
   return '▰'.repeat(filled) + '▱'.repeat(BAR_CELLS - filled);
 };
 
-const countdown = (ms: number): string => {
-  if (ms < HOUR) {
-    return `${Math.max(1, Math.ceil(ms / MINUTE))}m`;
+// In minutes, then hours and minutes, then days and hours, from whole minutes rounded one way: up for the time left
+// (never 0m while there's some), down for the time since
+const duration = (ms: number, round: (minutes: number) => number): string => {
+  const minutes = Math.max(1, round(ms / MINUTE));
+  const hours = Math.floor(minutes / 60);
+
+  if (hours === 0) {
+    return `${minutes}m`;
   }
 
-  if (ms < DAY) {
-    return `${Math.floor(ms / HOUR)}h ${Math.floor((ms % HOUR) / MINUTE)}m`;
+  if (hours < 24) {
+    return `${hours}h ${minutes % 60}m`;
   }
 
-  return `${Math.floor(ms / DAY)}d ${Math.floor((ms % DAY) / HOUR)}h`;
+  return `${Math.floor(hours / 24)}d ${hours % 24}h`;
 };
 
-const ago = (ms: number): string => (ms < MINUTE ? 'just now' : `${countdown(ms)} ago`);
+const countdown = (ms: number): string => duration(ms, Math.ceil);
+
+const ago = (ms: number): string => (ms < MINUTE ? 'just now' : `${duration(ms, Math.floor)} ago`);
 
 // A window whose reset time has passed has a percentage from before the reset: it's shown as reset, and counts as
 // empty, until the next reply reports a fresh one
@@ -98,8 +104,9 @@ const levelOf = (percent: number): Level =>
 const viewOf = (reading: Reading | undefined, now: number): View => {
   if (reading === undefined || reading.limits.length === 0) {
     return {
-      text: 'Claude Usage: no reading',
-      tooltip: 'Claude Code writes a reading after its next reply (Pro or Max plans only)',
+      text: "Claude Usage: waiting for Claude's reply",
+      tooltip:
+        "Your usage shows after Claude's next reply, on a Pro or Max plan. In a chat that was already open, run /reload-plugins first",
       level: 'ok',
     };
   }
