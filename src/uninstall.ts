@@ -14,8 +14,9 @@ const uninstall = async () => {
   const extensionsFolder = dirname(dirname(dirname(process.argv[1] ?? '')));
   const claude = await findClaude(await claudeCodeIn(extensionsFolder));
 
-  await uninstallPlugin(claude).catch(() => undefined);
+  // The reading first: it's quick, and VS Code may stop a script that runs long
   await rm(READING_PATH, { force: true });
+  await uninstallPlugin(claude).catch(() => undefined);
 };
 
 void uninstall();
