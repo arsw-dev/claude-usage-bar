@@ -12,7 +12,7 @@ Your Claude Code 5-hour and weekly usage, always in VS Code's status bar. No mor
 
 - **Each window** your plan has: the 5-hour window and the week, how much of each you've used, and how long until it
   resets.
-- **Yellow from 75%, red from 90%,** on whichever window is fuller.
+- **Yellow from 75%, red from 90%,** on the window that's filling up.
 - **Hover** for the details and when Claude Code last reported them.
 
 ## Getting started
