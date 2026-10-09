@@ -14,7 +14,8 @@ const run = promisify(execFile);
 const MARKETPLACE_NAME = 'claude-usage-bar';
 const PLUGIN_ID = `usage-bar@${MARKETPLACE_NAME}`;
 
-// This repo is the plugin's marketplace
+// This repo is the plugin's marketplace. The plugin comes from its release branch, which moves when a release is
+// published, so what's merged reaches Claude Code with the extension that expects it, not before
 const MARKETPLACE = 'arsw-dev/claude-usage-bar';
 
 // A command that hangs (a stalled network, a cold start gone wrong) would otherwise leave setting up spinning for good.
@@ -121,7 +122,7 @@ const installPlugin = async (claude: string): Promise<void> => {
   await runCommand(claude, ['plugin', 'enable', PLUGIN_ID]);
 };
 
-// The marketplace first, which is this repo cloned when it was added: the plugin updates to what it holds
+// The marketplace first, which is this repo cloned when it was added, then the plugin, from the release branch
 const updatePlugin = async (claude: string): Promise<void> => {
   await runCommand(claude, ['plugin', 'marketplace', 'update', MARKETPLACE_NAME]);
   await runCommand(claude, ['plugin', 'update', PLUGIN_ID]);

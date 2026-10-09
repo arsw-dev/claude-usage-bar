@@ -2,5 +2,15 @@
   "name": "claude-usage-bar",
   "owner": { "name": "Aryan Swaminath" },
   "description": "The plugin behind Usage Bar for Claude Code, which shows your usage in VS Code's status bar",
-  "plugins": [{ "name": "usage-bar", "source": "./plugin" }]
+  "plugins": [
+    {
+      "name": "usage-bar",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/arsw-dev/claude-usage-bar.git",
+        "path": "plugin",
+        "ref": "release"
+      }
+    }
+  ]
 }
