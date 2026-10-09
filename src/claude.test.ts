@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
-import { findClaude, installPlugin, isPluginInstalled } from './claude.ts';
+import { findClaude, installedVersion, installPlugin, isOlder, updatePlugin } from './claude.ts';
 
 let dir = '';
 
@@ -16,13 +16,13 @@ after(async () => {
   await rm(dir, { recursive: true });
 });
 
-// A stand-in for the claude binary: it notes the arguments it was given and prints the answer it's handed
+// A stand-in for the claude binary: it notes the arguments of each call, a line each, and prints the answer it's handed
 const fakeClaude = async (answer: unknown) => {
   const folder = await mkdtemp(join(dir, 'fake-'));
   const binary = join(folder, 'claude');
 
   await writeFile(join(folder, 'answer.json'), JSON.stringify(answer));
-  await writeFile(binary, `#!/bin/sh\necho "$@" > "${folder}/args"\ncat "${folder}/answer.json"\n`);
+  await writeFile(binary, `#!/bin/sh\necho "$@" >> "${folder}/args"\ncat "${folder}/answer.json"\n`);
   await chmod(binary, 0o755);
 
   return { binary, args: async () => (await readFile(join(folder, 'args'), 'utf8')).trim() };
@@ -46,14 +46,26 @@ describe('findClaude', () => {
   });
 });
 
-describe('isPluginInstalled', () => {
-  it('finds the plugin by its ID among those installed', async () => {
-    const installed = await fakeClaude([{ id: 'other@somewhere' }, { id: 'usage-bar@claude-usage-bar' }]);
-    const elsewhere = await fakeClaude([{ id: 'usage-bar@another-marketplace' }]);
+describe('installedVersion', () => {
+  it('finds the plugin by its ID among those installed, and says which version it is', async () => {
+    const installed = await fakeClaude([
+      { id: 'other@somewhere', version: '2.0.0' },
+      { id: 'usage-bar@claude-usage-bar', version: '1.2.0' },
+    ]);
+    const elsewhere = await fakeClaude([{ id: 'usage-bar@another-marketplace', version: '1.2.0' }]);
 
-    assert.equal(await isPluginInstalled(installed.binary), true);
+    assert.equal(await installedVersion(installed.binary), '1.2.0');
     assert.equal(await installed.args(), 'plugin list --json');
-    assert.equal(await isPluginInstalled(elsewhere.binary), false);
+    assert.equal(await installedVersion(elsewhere.binary), undefined);
+  });
+});
+
+describe('isOlder', () => {
+  it('compares versions part by part, as numbers', () => {
+    assert.equal(isOlder('0.9.0', '0.10.0'), true);
+    assert.equal(isOlder('1.2.3', '1.3.0'), true);
+    assert.equal(isOlder('1.3.0', '1.2.9'), false);
+    assert.equal(isOlder('1.2.0', '1.2.0'), false);
   });
 });
 
@@ -65,9 +77,30 @@ describe('installPlugin', () => {
     assert.equal(await claude.args(), 'plugin install usage-bar --marketplace arsw-dev/claude-usage-bar --json');
   });
 
-  it("fails with Claude Code's reason when the install doesn't go through", async () => {
+  it("fails with Claude Code's reason when it doesn't go through", async () => {
     const claude = await fakeClaude({ outcome: 'error', message: 'Marketplace file not found' });
 
     await assert.rejects(installPlugin(claude.binary), { message: 'Marketplace file not found' });
+  });
+});
+
+describe('updatePlugin', () => {
+  it('updates the marketplace, then the plugin from it', async () => {
+    const claude = await fakeClaude({ outcome: 'ok' });
+
+    await updatePlugin(claude.binary);
+    assert.equal(
+      await claude.args(),
+      'plugin marketplace update claude-usage-bar --json\nplugin update usage-bar@claude-usage-bar --json',
+    );
+  });
+});
+
+describe('versions', () => {
+  it("ship the plugin with the extension's version, which the extension updates it to", async () => {
+    const extension = JSON.parse(await readFile('package.json', 'utf8'));
+    const plugin = JSON.parse(await readFile(join('plugin', '.claude-plugin', 'plugin.json'), 'utf8'));
+
+    assert.equal(plugin.version, extension.version);
   });
 });
