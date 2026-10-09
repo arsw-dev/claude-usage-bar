@@ -1,7 +1,7 @@
 {
   "name": "claude-usage-bar",
   "displayName": "Usage Bar for Claude Code",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Your Claude Code 5-hour and weekly usage, always in VS Code's status bar",
   "categories": [
