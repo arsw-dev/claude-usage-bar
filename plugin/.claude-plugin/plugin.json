@@ -1,0 +1,8 @@
+{
+  "name": "usage-bar",
+  "version": "0.0.0",
+  "description": "Writes your Claude 5-hour and weekly usage whenever Claude replies, for the Usage Bar for Claude Code extension to show in VS Code's status bar",
+  "author": { "name": "Aryan Swaminath" },
+  "homepage": "https://github.com/arsw-dev/claude-usage-bar",
+  "license": "MIT"
+}

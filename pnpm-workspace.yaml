@@ -32,6 +32,10 @@ catalogs:
     # oxlint's type-aware rules, on TypeScript's own checker
     oxlint-tsgolint: 7.0.2003
 
+  # Claude Code's CLI, which validates and tests the plugin
+  plugin:
+    '@anthropic-ai/claude-code': 2.1.291
+
   # What the extension runs with, bundled into it
   runtime:
     zod: 4.6.5
@@ -43,6 +47,7 @@ catalogs:
     typescript: 7.0.2
 
 allowBuilds:
+  '@anthropic-ai/claude-code': true # links its platform's binary (an optional dependency) in place of a placeholder
   lefthook: false # would install the git hooks itself; `pnpm install` runs `lefthook install` (prepare) instead
 
 # Install fails on a Node version below package.json's engines
