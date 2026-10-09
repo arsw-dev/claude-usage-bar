@@ -17,6 +17,14 @@ catalogPrune: true
 savePrefix: ''
 
 catalogs:
+  # Bundling the extension into the one file VS Code loads
+  build:
+    rolldown: 1.2.12
+
+  # VS Code's API types (VS Code supplies the API itself at runtime)
+  editor:
+    '@types/vscode': 1.140.0
+
   # Linting and formatting
   lint:
     oxfmt: 0.71.0

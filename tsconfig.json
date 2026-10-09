@@ -7,7 +7,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "allowImportingTsExtensions": true,
-    "types": ["node"],
+    "types": ["node", "vscode"],
 
     "strict": true,
     "noUncheckedIndexedAccess": true,
