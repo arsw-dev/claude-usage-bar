@@ -4,7 +4,7 @@
 
 import { execFile } from 'node:child_process';
 import { access, constants, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 
 import { z } from 'zod';
@@ -44,6 +44,10 @@ const claudeCodeIn = async (extensionsFolder: string): Promise<string | undefine
 
   return newest === undefined ? undefined : join(extensionsFolder, newest.name);
 };
+
+// The extensions folder holding the extension whose script this is (<extensions folder>/<extension>/dist/<script>),
+// for the uninstall script, which runs without VS Code's API
+const extensionsFolderOf = (script: string): string => dirname(dirname(dirname(script)));
 
 // The bundled binary, where the Claude Code extension keeps it, else `claude` on the PATH for those who have the CLI
 const findClaude = async (extensionPath: string | undefined): Promise<string> => {
@@ -98,8 +102,9 @@ const outcomeOf = (stdout: string) => {
   }
 };
 
-// A command that fails exits 1, still with its outcome, whose message says why in a line: that's what the error
-// carries, never the command line with the user's paths. One already done (turning on a plugin that's on) counts as done
+// A command that fails exits 1, still with its outcome, whose message says why: its first line is what the error
+// carries, for a notification of one line, rather than the command line. One already done (turning on a plugin that's
+// on) counts as done
 const runCommand = async (claude: string, args: string[]): Promise<void> => {
   const stdout = await run(claude, [...args, '--json'], { timeout: COMMAND_TIMEOUT_MS }).then(
     result => result.stdout,
@@ -109,7 +114,7 @@ const runCommand = async (claude: string, args: string[]): Promise<void> => {
   const result = outcomeOf(stdout);
 
   if (result?.outcome !== 'ok' && result?.alreadyInGoalState !== true) {
-    throw new Error(result?.message ?? `claude ${args.join(' ')} didn't finish`);
+    throw new Error(result?.message?.split('\n')[0] ?? `claude ${args.join(' ')} didn't finish`);
   }
 };
 
@@ -135,4 +140,13 @@ const uninstallPlugin = async (claude: string): Promise<void> => {
   await runCommand(claude, ['plugin', 'marketplace', 'remove', MARKETPLACE_NAME]);
 };
 
-export { claudeCodeIn, findClaude, installedPlugin, installPlugin, isOlder, uninstallPlugin, updatePlugin };
+export {
+  claudeCodeIn,
+  extensionsFolderOf,
+  findClaude,
+  installedPlugin,
+  installPlugin,
+  isOlder,
+  uninstallPlugin,
+  updatePlugin,
+};
