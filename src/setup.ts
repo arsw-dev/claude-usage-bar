@@ -3,16 +3,37 @@
 // plugin is in, the first reading comes with Claude's next reply; a chat that was already open needs /reload-plugins
 // first, since Claude Code loads plugins when a session starts
 
-import { env, window } from 'vscode';
-
-import { installedPlugin, installPlugin, isOlder, updatePlugin } from './claude.ts';
-
-import type { ExtensionContext } from 'vscode';
+import { isOlder } from './claude.ts';
 
 // Ready means the plugin is in and the item shows the reading as it is
 type Setup = 'ready' | 'no-cli' | 'needs-plugin' | 'turned-off' | 'installing' | 'installed';
 
 type SetupView = { text: string; tooltip: string; command?: string };
+
+type InstalledPlugin = { version: string; enabled: boolean };
+
+// What setting up needs from outside, passed in so it's tested with fakes: Claude Code's CLI, and VS Code's dialogs,
+// clipboard and storage
+type SetupDeps = {
+  // The extension's version, which the plugin is kept at
+  version: string;
+  // VS Code's global state, kept across windows and restarts
+  state: { get: (key: string) => unknown; update: (key: string, value: unknown) => PromiseLike<void> };
+  plugin: {
+    installed: () => Promise<InstalledPlugin | undefined>;
+    install: () => Promise<void>;
+    update: () => Promise<void>;
+  };
+  ui: {
+    // A notification with buttons, answering the one clicked
+    ask: (message: string, ...buttons: string[]) => PromiseLike<string | undefined>;
+    fail: (message: string) => void;
+    pick: (title: string, items: { label: string; detail: string }[]) => PromiseLike<string | undefined>;
+    copy: (text: string) => PromiseLike<void>;
+  };
+  // Redraws the item
+  changed: () => void;
+};
 
 const SET_UP = 'claude-usage-bar.setUp';
 const EXPLAIN = 'claude-usage-bar.explain';
@@ -45,30 +66,8 @@ const SETUP_VIEWS: Readonly<Record<Exclude<Setup, 'ready'>, SetupView>> = {
   },
 };
 
-const copyReload = async (choice: string | undefined, button: string) => {
-  if (choice === button) {
-    await env.clipboard.writeText(RELOAD);
-  }
-};
-
-// Clicked by someone wondering why there are no bars yet. A quick pick rather than a modal, which macOS draws as a
-// system dialog: the first row copies the command, the second only explains
-const explain = async () => {
-  const copy = { label: `$(clippy) Copy ${RELOAD}`, detail: 'For a chat that was already open when you installed' };
-  const newChat = {
-    label: '$(comment-discussion) New chat? Nothing to do',
-    detail: 'Your usage shows once Claude replies',
-  };
-
-  const choice = await window.showQuickPick([copy, newChat], {
-    title: "Your Claude usage shows after Claude's next reply",
-  });
-
-  await copyReload(choice?.label, copy.label);
-};
-
-// The setup state, for the item to draw while there's no reading. `changed` redraws it
-const createSetup = (context: ExtensionContext, claude: Promise<string>, changed: () => void) => {
+// The setup state, for the item to draw while there's no reading
+const createSetup = ({ version, state, plugin, ui, changed }: SetupDeps) => {
   let setup: Setup = 'ready';
 
   const set = (next: Setup) => {
@@ -76,26 +75,41 @@ const createSetup = (context: ExtensionContext, claude: Promise<string>, changed
     changed();
   };
 
+  const copyReload = async (choice: string | undefined, button: string) => {
+    if (choice === button) {
+      await ui.copy(RELOAD);
+    }
+  };
+
+  // Clicked by someone wondering why there are no bars yet. A quick pick rather than a modal, which macOS draws as a
+  // system dialog: the first row copies the command, the second only explains
+  const explain = async () => {
+    const copy = { label: `$(clippy) Copy ${RELOAD}`, detail: 'For a chat that was already open when you installed' };
+    const newChat = {
+      label: '$(comment-discussion) New chat? Nothing to do',
+      detail: 'Your usage shows once Claude replies',
+    };
+
+    await copyReload(await ui.pick("Your Claude usage shows after Claude's next reply", [copy, newChat]), copy.label);
+  };
+
   const runInstall = async () => {
     set('installing');
 
     try {
-      await installPlugin(await claude);
+      await plugin.install();
       set('installed');
 
       // One line: a longer notification opens collapsed
       const button = 'Copy Command';
-      const choice = await window.showInformationMessage(
-        `Usage Bar is set up. Run ${RELOAD} in open Claude chats.`,
-        button,
-      );
+      const choice = await ui.ask(`Usage Bar is set up. Run ${RELOAD} in open Claude chats.`, button);
 
       await copyReload(choice, button);
     } catch (error) {
       set('needs-plugin');
 
       const reason = error instanceof Error ? error.message : String(error);
-      void window.showErrorMessage(`Usage Bar couldn't install its Claude Code plugin: ${reason}`);
+      ui.fail(`Usage Bar couldn't install its Claude Code plugin: ${reason}`);
     }
   };
 
@@ -112,28 +126,24 @@ const createSetup = (context: ExtensionContext, claude: Promise<string>, changed
 
   // Asked once: after "Not Now", the item's own "set up" is the way back
   const offer = async () => {
-    if (context.globalState.get(DECLINED_KEY) === true) {
+    if (state.get(DECLINED_KEY) === true) {
       return;
     }
 
-    const choice = await window.showInformationMessage(
-      'Usage Bar needs a small Claude Code plugin to show your usage.',
-      'Install',
-      'Not Now',
-    );
+    const choice = await ui.ask('Usage Bar needs a small Claude Code plugin to show your usage.', 'Install', 'Not Now');
 
     if (choice === 'Install') {
       await install();
     } else {
-      await context.globalState.update(DECLINED_KEY, true);
+      await state.update(DECLINED_KEY, true);
     }
   };
 
   // The plugin ships with the extension and has its version. An older one is updated quietly: it keeps working until
   // then, and a failed update is tried again at the next start
   const update = async (installed: string) => {
-    if (isOlder(installed, context.extension.packageJSON.version)) {
-      await updatePlugin(await claude).catch(() => undefined);
+    if (isOlder(installed, version)) {
+      await plugin.update().catch(() => undefined);
     }
   };
 
@@ -141,7 +151,7 @@ const createSetup = (context: ExtensionContext, claude: Promise<string>, changed
   // installing says why. A plugin turned off is left off until the item is clicked
   const check = async () => {
     try {
-      const installed = await installedPlugin(await claude);
+      const installed = await plugin.installed();
 
       if (installed !== undefined) {
         await update(installed.version);
@@ -164,7 +174,8 @@ const createSetup = (context: ExtensionContext, claude: Promise<string>, changed
     await offer();
   };
 
-  return { view: () => (setup === 'ready' ? undefined : SETUP_VIEWS[setup]), check, install };
+  return { view: () => (setup === 'ready' ? undefined : SETUP_VIEWS[setup]), check, install, explain };
 };
 
-export { createSetup, explain, EXPLAIN, SET_UP };
+export { createSetup, EXPLAIN, SET_UP };
+export type { SetupDeps };
