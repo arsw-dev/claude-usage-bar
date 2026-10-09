@@ -51,7 +51,7 @@ catalogs:
 
 allowBuilds:
   '@vscode/vsce-sign': false # vsce's signing binary, for signing packages myself; the marketplaces don't need it
-  keytar: false # would build a native module to keep a publish token in the keychain; tokens come from 1Password
+  keytar: false # would build a native module to keep a publish token in the keychain, which publishing doesn't use
   '@anthropic-ai/claude-code': true # links its platform's binary (an optional dependency) in place of a placeholder
   lefthook: false # would install the git hooks itself; `pnpm install` runs `lefthook install` (prepare) instead
 

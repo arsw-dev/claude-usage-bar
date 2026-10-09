@@ -2,9 +2,6 @@
 
 Your Claude Code 5-hour and weekly usage, always in VS Code's status bar. No more typing `/usage`.
 
-**It never reads your Claude login and makes no network requests.** It shows what Claude Code already knows about your
-limits, written by a small Claude Code plugin it installs for you.
-
 ![The status bar, showing the 5-hour and weekly windows](images/screenshot.png)
 
 ## What it shows
@@ -29,13 +26,14 @@ You need a Claude Pro or Max plan: on other plans Claude Code has no usage limit
 
 ## How it works
 
-Claude Code knows your rate limits from its replies, but its VS Code panel doesn't show them, and an extension can't ask
-Claude Code for them. So the extension installs a Claude Code plugin (`plugin/` in this repo) that writes your limits to
-`~/.claude/usage-bar.json` whenever a reply moves them, and the extension shows that file in the status bar.
+Claude Code learns your usage limits from Claude's replies, but its VS Code panel doesn't show them. Usage Bar adds a
+small Claude Code plugin that saves them to `~/.claude/usage-bar.json` after each reply, and the status bar shows that
+file.
 
-- **Nothing leaves your machine.** The plugin writes one small file; the extension reads it.
-- **No credentials.** Neither reads your Claude login, a token or a cookie.
-- **Uninstalling the extension removes the plugin** and the file.
+- **One click to set up.** The extension runs Claude Code's own `claude plugin install`, which fetches the plugin from
+  this repo. It's updated with the extension and removed when you uninstall it.
+- **Only what Claude Code already knows.** Writing that one file is all the plugin does
+  ([`plugin/hooks/register.ts`](plugin/hooks/register.ts), about 40 lines), and the extension only reads it.
 
 ## Known limitations
 
