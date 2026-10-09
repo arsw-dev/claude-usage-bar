@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" shape-rendering="geometricPrecision">
+  <defs>
+    <!-- One gradient across the whole row, so each cell is a step from violet to deep violet -->
+    <linearGradient id="fill" gradientUnits="userSpaceOnUse" x1="11.20" y1="0" x2="116.80" y2="0">
+      <stop offset="0" stop-color="#8a7ef7"/>
+      <stop offset="1" stop-color="#4a3be0"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#fill)" d="M16.80 32.00 H32.80 L27.20 56.00 H11.20 Z M37.80 32.00 H53.80 L48.20 56.00 H32.20 Z M58.80 32.00 H74.80 L69.20 56.00 H53.20 Z M79.80 32.00 H95.80 L90.20 56.00 H74.20 Z M100.80 32.00 H116.80 L111.20 56.00 H95.20 Z M16.80 72.00 H32.80 L27.20 96.00 H11.20 Z M37.80 72.00 H53.80 L48.20 96.00 H32.20 Z M58.80 72.00 H74.80 L69.20 96.00 H53.20 Z"/>
+  <path fill="none" stroke="#7a72d0" stroke-width="3" stroke-linejoin="round" d="M81.30 73.50 H94.30 L88.70 94.50 H75.70 Z M102.30 73.50 H115.30 L109.70 94.50 H96.70 Z"/>
+</svg>
