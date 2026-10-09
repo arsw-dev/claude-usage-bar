@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { bar, countdown, viewOf } from './view.ts';
+import { bar, countdown, windowViewsOf } from './view.ts';
 
 import type { Reading } from './view.ts';
 
@@ -15,6 +15,9 @@ const reading = (fiveHour: number, sevenDay: number): Reading => ({
     { kind: 'five_hour', percentUsed: fiveHour, resetsAt: '2026-10-08T12:18:00Z' },
   ],
 });
+
+const levels = (fiveHour: number, sevenDay: number) =>
+  windowViewsOf(reading(fiveHour, sevenDay), NOW).map(view => view.level);
 
 describe('bar', () => {
   it('fills a cell per 10%, rounded, and never spills', () => {
@@ -39,49 +42,61 @@ describe('countdown', () => {
   });
 });
 
-describe('viewOf', () => {
-  it('shows the 5-hour window first, then the week', () => {
-    const view = viewOf(reading(83, 63), NOW);
+describe('windowViewsOf', () => {
+  it('shows the 5-hour window first, then the week, each with when Claude Code reported', () => {
+    const [fiveHour, sevenDay] = windowViewsOf(reading(83, 63), NOW);
 
-    assert.equal(view.text, '5h ▰▰▰▰▰▰▰▰▱▱ 83% · 18m   7d ▰▰▰▰▰▰▱▱▱▱ 63% · 5d 1h');
-    assert.equal(
-      view.tooltip,
-      '5-hour window: 83% used, resets in 18m\nWeekly: 63% used, resets in 5d 1h\nUpdated 2m ago by Claude Code',
-    );
+    assert.deepEqual(fiveHour, {
+      kind: 'five_hour',
+      name: '5-Hour Window',
+      text: '5h ▰▰▰▰▰▰▰▰▱▱ 83% · 18m',
+      tooltip: '5-hour window: 83% used, resets in 18m\nUpdated 2m ago by Claude Code',
+      level: 'warning',
+    });
+    assert.deepEqual(sevenDay, {
+      kind: 'seven_day',
+      name: 'Weekly',
+      text: '7d ▰▰▰▰▰▰▱▱▱▱ 63% · 5d 1h',
+      tooltip: 'Weekly: 63% used, resets in 5d 1h\nUpdated 2m ago by Claude Code',
+      level: 'ok',
+    });
   });
 
   it('says how long ago Claude Code reported, in whole minutes passed', () => {
-    const view = viewOf({ ...reading(83, 63), updatedAt: NOW - 2.9 * MINUTE }, NOW);
+    const [fiveHour] = windowViewsOf({ ...reading(83, 63), updatedAt: NOW - 2.9 * MINUTE }, NOW);
 
-    assert.match(view.tooltip, /Updated 2m ago by Claude Code$/);
+    assert.match(fiveHour?.tooltip ?? '', /Updated 2m ago by Claude Code$/);
   });
 
   it("shows a gateway's spend limit by name, after the 5-hour and weekly windows", () => {
-    const view = viewOf(
+    const views = windowViewsOf(
       { ...reading(83, 63), limits: [{ kind: 'spend_limit', percentUsed: 40 }, ...reading(83, 63).limits] },
       NOW,
     );
 
-    assert.match(view.text, /^5h .* {3}7d .* {3}Spend ▰▰▰▰▱▱▱▱▱▱ 40%$/);
-    assert.match(view.tooltip, /\nSpend limit: 40% used\n/);
+    assert.deepEqual(
+      views.map(view => view.text),
+      ['5h ▰▰▰▰▰▰▰▰▱▱ 83% · 18m', '7d ▰▰▰▰▰▰▱▱▱▱ 63% · 5d 1h', 'Spend ▰▰▰▰▱▱▱▱▱▱ 40%'],
+    );
+    assert.equal(views[2]?.name, 'Spend Limit');
   });
 
-  it('warns from 75% and alarms from 90%, on whichever window is fuller', () => {
-    assert.equal(viewOf(reading(74, 20), NOW).level, 'ok');
-    assert.equal(viewOf(reading(74.5, 20), NOW).level, 'warning');
-    assert.equal(viewOf(reading(20, 75), NOW).level, 'warning');
-    assert.equal(viewOf(reading(90, 20), NOW).level, 'error');
+  it('warns from 75% and alarms from 90%, each window for itself', () => {
+    assert.deepEqual(levels(74, 20), ['ok', 'ok']);
+    assert.deepEqual(levels(74.5, 20), ['warning', 'ok']);
+    assert.deepEqual(levels(20, 75), ['ok', 'warning']);
+    assert.deepEqual(levels(90, 82), ['error', 'warning']);
   });
 
   it('shows a window past its reset as reset, and stops warning about it', () => {
-    const view = viewOf(reading(95, 20), NOW + 30 * MINUTE);
+    const [fiveHour] = windowViewsOf(reading(95, 20), NOW + 30 * MINUTE);
 
-    assert.match(view.text, /^5h reset {3}7d/);
-    assert.equal(view.level, 'ok');
+    assert.equal(fiveHour?.text, '5h reset');
+    assert.equal(fiveHour?.level, 'ok');
   });
 
-  it("waits for Claude's reply before Claude Code has written a reading", () => {
-    assert.equal(viewOf(undefined, NOW).text, "Claude Usage: waiting for Claude's reply");
-    assert.equal(viewOf({ updatedAt: NOW, limits: [] }, NOW).text, "Claude Usage: waiting for Claude's reply");
+  it('has no windows before Claude Code has written a reading with limits', () => {
+    assert.deepEqual(windowViewsOf(undefined, NOW), []);
+    assert.deepEqual(windowViewsOf({ updatedAt: NOW, limits: [] }, NOW), []);
   });
 });

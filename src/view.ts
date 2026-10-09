@@ -1,5 +1,5 @@
-// A reading as the status bar item shows it: a bar per usage window, its share used and the time until it resets, and a
-// colour from whichever window is fuller. Pure: the time comes in as an argument
+// A reading as the status bar shows it: an item per usage window, with a bar, its share used, the time until it resets,
+// and a colour of its own. Pure: the time comes in as an argument
 
 // One rate-limit window as Claude Code reports it: `five_hour`, `seven_day`, or a Claude gateway's `spend_limit`
 type UsageWindow = {
@@ -21,16 +21,26 @@ type View = {
   level: Level;
 };
 
+// A window's item, by its kind, with the name VS Code lists it under in the status bar's menu
+type WindowView = View & { kind: string; name: string };
+
 const MINUTE = 60_000;
 
 const BAR_CELLS = 10;
 const WARNING_PERCENT = 75;
 const ERROR_PERCENT = 90;
 
-const LABELS: Readonly<Record<string, { short: string; long: string }>> = {
-  five_hour: { short: '5h', long: '5-hour window' },
-  seven_day: { short: '7d', long: 'Weekly' },
-  spend_limit: { short: 'Spend', long: 'Spend limit' },
+const LABELS: Readonly<Record<string, { short: string; long: string; name: string }>> = {
+  five_hour: { short: '5h', long: '5-hour window', name: '5-Hour Window' },
+  seven_day: { short: '7d', long: 'Weekly', name: 'Weekly' },
+  spend_limit: { short: 'Spend', long: 'Spend limit', name: 'Spend Limit' },
+};
+
+const WAITING: View = {
+  text: "Claude Usage: waiting for Claude's reply",
+  tooltip:
+    "Your usage shows after Claude's next reply, on a Pro or Max plan. In a chat that was already open, run /reload-plugins first",
+  level: 'ok',
 };
 
 const ORDER = ['five_hour', 'seven_day', 'spend_limit'];
@@ -79,47 +89,45 @@ const msLeft = (window: UsageWindow, now: number): number | undefined => {
   return Number.isNaN(resetsAt) ? undefined : resetsAt - now;
 };
 
-const describeWindow = (window: UsageWindow, now: number) => {
-  const label = LABELS[window.kind] ?? { short: window.kind, long: window.kind };
+const levelOf = (percent: number): Level =>
+  percent >= ERROR_PERCENT ? 'error' : percent >= WARNING_PERCENT ? 'warning' : 'ok';
+
+const viewOfWindow = (window: UsageWindow, updated: string, now: number): WindowView => {
+  const label = LABELS[window.kind] ?? { short: window.kind, long: window.kind, name: window.kind };
   const left = msLeft(window, now);
   const percent = Math.round(window.percentUsed);
+  const named = { kind: window.kind, name: label.name };
 
   if (left !== undefined && left <= 0) {
-    return { percent: 0, text: `${label.short} reset`, tooltip: `${label.long}: reset, no new reading yet` };
+    return {
+      ...named,
+      text: `${label.short} reset`,
+      tooltip: `${label.long}: reset, no new reading yet\n${updated}`,
+      level: 'ok',
+    };
   }
 
   const resets = left === undefined ? '' : ` · ${countdown(left)}`;
   const resetsLong = left === undefined ? '' : `, resets in ${countdown(left)}`;
 
   return {
-    percent,
+    ...named,
     text: `${label.short} ${bar(percent)} ${percent}%${resets}`,
-    tooltip: `${label.long}: ${percent}% used${resetsLong}`,
+    tooltip: `${label.long}: ${percent}% used${resetsLong}\n${updated}`,
+    level: levelOf(percent),
   };
 };
 
-const levelOf = (percent: number): Level =>
-  percent >= ERROR_PERCENT ? 'error' : percent >= WARNING_PERCENT ? 'warning' : 'ok';
-
-const viewOf = (reading: Reading | undefined, now: number): View => {
-  if (reading === undefined || reading.limits.length === 0) {
-    return {
-      text: "Claude Usage: waiting for Claude's reply",
-      tooltip:
-        "Your usage shows after Claude's next reply, on a Pro or Max plan. In a chat that was already open, run /reload-plugins first",
-      level: 'ok',
-    };
+// None until Claude Code has written a reading with limits
+const windowViewsOf = (reading: Reading | undefined, now: number): WindowView[] => {
+  if (reading === undefined) {
+    return [];
   }
 
-  const windows = reading.limits.toSorted((a, b) => rank(a.kind) - rank(b.kind)).map(w => describeWindow(w, now));
-  const worst = Math.max(...windows.map(w => w.percent));
+  const updated = `Updated ${ago(now - reading.updatedAt)} by Claude Code`;
 
-  return {
-    text: windows.map(w => w.text).join('   '),
-    tooltip: [...windows.map(w => w.tooltip), `Updated ${ago(now - reading.updatedAt)} by Claude Code`].join('\n'),
-    level: levelOf(worst),
-  };
+  return reading.limits.toSorted((a, b) => rank(a.kind) - rank(b.kind)).map(w => viewOfWindow(w, updated, now));
 };
 
-export { bar, countdown, viewOf };
-export type { Level, Reading, UsageWindow, View };
+export { bar, countdown, WAITING, windowViewsOf };
+export type { Level, Reading, UsageWindow, View, WindowView };
