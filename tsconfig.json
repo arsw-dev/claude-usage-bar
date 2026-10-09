@@ -1,0 +1,32 @@
+{
+  // Type-checks the extension's source and its tests. tsc only checks: Node runs the tests' TypeScript directly, and
+  // Rolldown bundles the extension. The plugin (plugin/) is checked by Claude Code's own tooling
+  "compilerOptions": {
+    "target": "ES2025",
+    "lib": ["ES2025"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    // Only syntax that erases, so Node's type stripping and the bundler can each handle a file on its own
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noUncheckedSideEffectImports": true,
+
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "*.config.ts"]
+}

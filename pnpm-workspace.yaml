@@ -1,0 +1,17 @@
+# Settings only: the repo is one package, the extension
+
+# Supply chain: a release must be 3 days old before it's installed, and a package's trust level (provenance, trusted
+# publishing) can't drop between versions
+minimumReleaseAge: 4320
+trustPolicy: no-downgrade
+# Dependencies of dependencies come from the registry only: no git URLs or tarballs
+blockExoticSubdeps: true
+# Install fails when a dependency wants to run install scripts nobody approved in allowBuilds
+strictDepBuilds: true
+savePrefix: ''
+
+allowBuilds:
+  lefthook: false # would install the git hooks itself; `pnpm install` runs `lefthook install` (prepare) instead
+
+# Install fails on a Node version below package.json's engines
+engineStrict: true
