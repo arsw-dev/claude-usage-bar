@@ -5,7 +5,7 @@
 
 import { env, window } from 'vscode';
 
-import { installPlugin, isPluginInstalled } from './claude.ts';
+import { installedVersion, installPlugin, isOlder, updatePlugin } from './claude.ts';
 
 import type { ExtensionContext } from 'vscode';
 
@@ -109,11 +109,23 @@ const createSetup = (context: ExtensionContext, claude: Promise<string>, changed
     }
   };
 
+  // The plugin ships with the extension and has its version. An older one is updated quietly: it keeps working until
+  // then, and a failed update is tried again at the next start
+  const update = async (installed: string) => {
+    if (isOlder(installed, context.extension.packageJSON.version)) {
+      await updatePlugin(await claude).catch(() => undefined);
+    }
+  };
+
   // At startup. A claude that won't start means no Claude Code; one that fails otherwise is treated as no plugin, and
   // installing says why
   const check = async () => {
     try {
-      if (await isPluginInstalled(await claude)) {
+      const installed = await installedVersion(await claude);
+
+      if (installed !== undefined) {
+        await update(installed);
+
         return;
       }
     } catch (error) {
