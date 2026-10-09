@@ -3,7 +3,7 @@
 // PATH, and many users never install the CLI on its own
 
 import { execFile } from 'node:child_process';
-import { access, constants } from 'node:fs/promises';
+import { access, constants, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -19,6 +19,21 @@ const MARKETPLACE = 'arsw-dev/claude-usage-bar';
 
 const listSchema = z.array(z.object({ id: z.string(), version: z.string() }));
 const resultSchema = z.object({ outcome: z.string(), message: z.string().optional() });
+
+// The newest Claude Code extension in an extensions folder, where VS Code keeps each installed extension in a folder of
+// its own (anthropic.claude-code-2.1.295-darwin-arm64). Several versions can sit side by side until VS Code cleans up
+const claudeCodeIn = async (extensionsFolder: string): Promise<string | undefined> => {
+  const found = (await readdir(extensionsFolder).catch(() => []))
+    .map(name => ({ name, version: /^anthropic\.claude-code-(\d+\.\d+\.\d+)/i.exec(name)?.[1] }))
+    .filter(folder => folder.version !== undefined);
+
+  const newest = found.reduce<(typeof found)[number] | undefined>(
+    (best, folder) => (best === undefined || isOlder(best.version ?? '', folder.version ?? '') ? folder : best),
+    undefined,
+  );
+
+  return newest === undefined ? undefined : join(extensionsFolder, newest.name);
+};
 
 // The bundled binary, where the Claude Code extension keeps it, else `claude` on the PATH for those who have the CLI
 const findClaude = async (extensionPath: string | undefined): Promise<string> => {
@@ -64,9 +79,10 @@ const isOlder = (a: string, b: string): boolean => {
   return false;
 };
 
+// A command run with --json answers with its outcome on its last line, after any progress it prints
 const runCommand = async (claude: string, args: string[]): Promise<void> => {
   const { stdout } = await run(claude, [...args, '--json']);
-  const result = resultSchema.parse(JSON.parse(stdout));
+  const result = resultSchema.parse(JSON.parse(stdout.trim().split('\n').at(-1) ?? ''));
 
   if (result.outcome !== 'ok') {
     throw new Error(result.message ?? `${args.join(' ')} ended ${result.outcome}`);
@@ -85,4 +101,10 @@ const updatePlugin = async (claude: string): Promise<void> => {
   await runCommand(claude, ['plugin', 'update', PLUGIN_ID]);
 };
 
-export { findClaude, installedVersion, installPlugin, isOlder, updatePlugin };
+// The plugin, then the marketplace that is this repo: nothing left behind in Claude Code
+const uninstallPlugin = async (claude: string): Promise<void> => {
+  await runCommand(claude, ['plugin', 'uninstall', PLUGIN_ID]);
+  await runCommand(claude, ['plugin', 'marketplace', 'remove', MARKETPLACE_NAME]);
+};
+
+export { claudeCodeIn, findClaude, installedVersion, installPlugin, isOlder, uninstallPlugin, updatePlugin };

@@ -39,4 +39,4 @@ const readReading = async (path = READING_PATH): Promise<Reading | undefined> =>
   }
 };
 
-export { readReading };
+export { READING_PATH, readReading };
