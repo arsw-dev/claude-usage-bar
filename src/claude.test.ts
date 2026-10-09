@@ -7,7 +7,7 @@ import { after, before, describe, it } from 'node:test';
 import {
   claudeCodeIn,
   findClaude,
-  installedVersion,
+  installedPlugin,
   installPlugin,
   isOlder,
   uninstallPlugin,
@@ -24,14 +24,14 @@ after(async () => {
   await rm(dir, { recursive: true });
 });
 
-// A stand-in for the claude binary: it notes the arguments of each call, a line each, and prints the answer it's handed,
-// after any progress lines
-const fakeClaude = async (answer: unknown, progress = '') => {
+// A stand-in for the claude binary: it notes the arguments of each call, a line each, prints the answer it's handed,
+// after any progress lines, and exits 1 for a failure, as claude does
+const fakeClaude = async (answer: unknown, { progress = '', exitCode = 0 } = {}) => {
   const folder = await mkdtemp(join(dir, 'fake-'));
   const binary = join(folder, 'claude');
 
-  await writeFile(join(folder, 'answer.json'), progress + JSON.stringify(answer));
-  await writeFile(binary, `#!/bin/sh\necho "$@" >> "${folder}/args"\ncat "${folder}/answer.json"\n`);
+  await writeFile(join(folder, 'answer.json'), answer === undefined ? progress : progress + JSON.stringify(answer));
+  await writeFile(binary, `#!/bin/sh\necho "$@" >> "${folder}/args"\ncat "${folder}/answer.json"\nexit ${exitCode}\n`);
   await chmod(binary, 0o755);
 
   return { binary, args: async () => (await readFile(join(folder, 'args'), 'utf8')).trim() };
@@ -81,17 +81,21 @@ describe('findClaude', () => {
   });
 });
 
-describe('installedVersion', () => {
-  it('finds the plugin by its ID among those installed, and says which version it is', async () => {
+describe('installedPlugin', () => {
+  it('finds the plugin by its ID among those installed, with its version and whether it is on', async () => {
     const installed = await fakeClaude([
-      { id: 'other@somewhere', version: '2.0.0' },
-      { id: 'usage-bar@claude-usage-bar', version: '1.2.0' },
+      { id: 'other@somewhere', version: '2.0.0', enabled: true },
+      { id: 'usage-bar@claude-usage-bar', version: '1.2.0', enabled: false },
     ]);
-    const elsewhere = await fakeClaude([{ id: 'usage-bar@another-marketplace', version: '1.2.0' }]);
+    const elsewhere = await fakeClaude([{ id: 'usage-bar@another-marketplace', version: '1.2.0', enabled: true }]);
 
-    assert.equal(await installedVersion(installed.binary), '1.2.0');
+    assert.deepEqual(await installedPlugin(installed.binary), {
+      id: 'usage-bar@claude-usage-bar',
+      version: '1.2.0',
+      enabled: false,
+    });
     assert.equal(await installed.args(), 'plugin list --json');
-    assert.equal(await installedVersion(elsewhere.binary), undefined);
+    assert.equal(await installedPlugin(elsewhere.binary), undefined);
   });
 });
 
@@ -105,17 +109,41 @@ describe('isOlder', () => {
 });
 
 describe('installPlugin', () => {
-  it('installs from this repo as a marketplace', async () => {
+  it('adds this repo as a marketplace, installs the plugin from it and turns it on', async () => {
     const claude = await fakeClaude({ outcome: 'ok' });
 
     await installPlugin(claude.binary);
-    assert.equal(await claude.args(), 'plugin install usage-bar --marketplace arsw-dev/claude-usage-bar --json');
+    assert.equal(
+      await claude.args(),
+      [
+        'plugin marketplace add arsw-dev/claude-usage-bar --json',
+        'plugin install usage-bar@claude-usage-bar --json',
+        'plugin enable usage-bar@claude-usage-bar --json',
+      ].join('\n'),
+    );
+  });
+
+  it('counts a step already done as done', async () => {
+    const claude = await fakeClaude(
+      { outcome: 'failed', message: 'Plugin is already enabled', alreadyInGoalState: true },
+      { exitCode: 1 },
+    );
+
+    await installPlugin(claude.binary);
   });
 
   it("fails with Claude Code's reason when it doesn't go through", async () => {
-    const claude = await fakeClaude({ outcome: 'error', message: 'Marketplace file not found' });
+    const claude = await fakeClaude({ outcome: 'failed', message: 'Marketplace file not found' }, { exitCode: 1 });
 
     await assert.rejects(installPlugin(claude.binary), { message: 'Marketplace file not found' });
+  });
+
+  it("names the command, and none of the user's paths, when there's no reason", async () => {
+    const claude = await fakeClaude(undefined, { progress: 'Cloning…\n', exitCode: 1 });
+
+    await assert.rejects(installPlugin(claude.binary), {
+      message: "claude plugin marketplace add arsw-dev/claude-usage-bar didn't finish",
+    });
   });
 });
 
@@ -142,12 +170,19 @@ describe('versions', () => {
 
 describe('uninstallPlugin', () => {
   it('uninstalls the plugin, then removes the marketplace, each answering after its progress', async () => {
-    const claude = await fakeClaude({ outcome: 'ok' }, 'Removing…\n');
+    const claude = await fakeClaude({ outcome: 'ok' }, { progress: 'Removing…\n' });
 
     await uninstallPlugin(claude.binary);
     assert.equal(
       await claude.args(),
       'plugin uninstall usage-bar@claude-usage-bar --json\nplugin marketplace remove claude-usage-bar --json',
     );
+  });
+
+  it('removes the marketplace even when the plugin was already gone', async () => {
+    const claude = await fakeClaude({ outcome: 'failed', failureCode: 'not_installed' }, { exitCode: 1 });
+
+    await assert.rejects(uninstallPlugin(claude.binary));
+    assert.match(await claude.args(), /plugin marketplace remove claude-usage-bar/);
   });
 });

@@ -5,12 +5,12 @@
 
 import { env, window } from 'vscode';
 
-import { installedVersion, installPlugin, isOlder, updatePlugin } from './claude.ts';
+import { installedPlugin, installPlugin, isOlder, updatePlugin } from './claude.ts';
 
 import type { ExtensionContext } from 'vscode';
 
 // Ready means the plugin is in and the item shows the reading as it is
-type Setup = 'ready' | 'needs-claude-code' | 'needs-plugin' | 'installing' | 'installed';
+type Setup = 'ready' | 'no-cli' | 'needs-plugin' | 'turned-off' | 'installing' | 'installed';
 
 type SetupView = { text: string; tooltip: string; command?: string };
 
@@ -21,13 +21,20 @@ const DECLINED_KEY = 'setUpDeclined';
 const RELOAD = '/reload-plugins';
 
 const SETUP_VIEWS: Readonly<Record<Exclude<Setup, 'ready'>, SetupView>> = {
-  'needs-claude-code': {
-    text: 'Claude Usage: needs Claude Code',
-    tooltip: 'Install the Claude Code extension, then reload the window',
+  // The Claude Code extension is always there (it's a dependency), but its CLI wasn't where it keeps it, and there's no
+  // claude on the PATH either
+  'no-cli': {
+    text: "Claude Usage: can't find Claude Code's CLI",
+    tooltip: "Update the Claude Code extension, or install Claude Code's CLI, then reload the window",
   },
   'needs-plugin': {
     text: '$(gear) Claude Usage: set up',
     tooltip: 'Install the Claude Code plugin that reports your usage',
+    command: SET_UP,
+  },
+  'turned-off': {
+    text: '$(gear) Claude Usage: plugin turned off',
+    tooltip: 'The plugin that reports your usage is turned off in Claude Code. Click to turn it on',
     command: SET_UP,
   },
   installing: { text: '$(sync~spin) Claude Usage: installing', tooltip: 'Installing the Claude Code plugin' },
@@ -69,7 +76,7 @@ const createSetup = (context: ExtensionContext, claude: Promise<string>, changed
     changed();
   };
 
-  const install = async () => {
+  const runInstall = async () => {
     set('installing');
 
     try {
@@ -86,8 +93,21 @@ const createSetup = (context: ExtensionContext, claude: Promise<string>, changed
       await copyReload(choice, button);
     } catch (error) {
       set('needs-plugin');
-      void window.showErrorMessage(`Usage Bar couldn't install its Claude Code plugin: ${String(error)}`);
+
+      const reason = error instanceof Error ? error.message : String(error);
+      void window.showErrorMessage(`Usage Bar couldn't install its Claude Code plugin: ${reason}`);
     }
+  };
+
+  // One install at a time: the item, the Command Palette and the startup offer can each ask while one is running
+  let installing: Promise<void> | undefined;
+
+  const install = () => {
+    installing ??= runInstall().finally(() => {
+      installing = undefined;
+    });
+
+    return installing;
   };
 
   // Asked once: after "Not Now", the item's own "set up" is the way back
@@ -117,20 +137,24 @@ const createSetup = (context: ExtensionContext, claude: Promise<string>, changed
     }
   };
 
-  // At startup. A claude that won't start means no Claude Code; one that fails otherwise is treated as no plugin, and
-  // installing says why
+  // At startup. A claude that won't start means no CLI; one that fails otherwise is treated as no plugin, and
+  // installing says why. A plugin turned off is left off until the item is clicked
   const check = async () => {
     try {
-      const installed = await installedVersion(await claude);
+      const installed = await installedPlugin(await claude);
 
       if (installed !== undefined) {
-        await update(installed);
+        await update(installed.version);
+
+        if (!installed.enabled) {
+          set('turned-off');
+        }
 
         return;
       }
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-        set('needs-claude-code');
+        set('no-cli');
 
         return;
       }
