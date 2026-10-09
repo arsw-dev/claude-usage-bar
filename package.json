@@ -54,7 +54,7 @@
   "devDependencies": {
     "@anthropic-ai/claude-code": "catalog:plugin",
     "@types/node": "catalog:tooling",
-    "@types/vscode": "1.140.0",
+    "@types/vscode": "1.94.0",
     "@vscode/vsce": "catalog:publish",
     "lefthook": "catalog:tooling",
     "ovsx": "catalog:publish",
@@ -85,7 +85,7 @@
   },
   "engines": {
     "node": ">=26",
-    "vscode": "^1.140.0"
+    "vscode": "^1.94.0"
   },
   "packageManager": "pnpm@11.28.3"
 }
