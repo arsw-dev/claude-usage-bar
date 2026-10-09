@@ -4,6 +4,26 @@
   "version": "0.0.0",
   "private": true,
   "description": "Your Claude Code 5-hour and weekly usage in the status bar. Reads no credentials, makes no network requests",
+  "categories": [
+    "AI",
+    "Visualization"
+  ],
+  "keywords": [
+    "5-hour",
+    "anthropic",
+    "claude",
+    "claude code",
+    "limits",
+    "quota",
+    "rate limit",
+    "status bar",
+    "usage",
+    "weekly"
+  ],
+  "homepage": "https://github.com/arsw-dev/claude-usage-bar#readme",
+  "bugs": {
+    "url": "https://github.com/arsw-dev/claude-usage-bar/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -23,7 +43,10 @@
     "test": "node --test \"src/**/*.test.ts\"",
     "build": "rolldown src/extension.ts --file dist/extension.cjs --format cjs --platform node --external vscode && rolldown src/uninstall.ts --file dist/uninstall.cjs --format cjs --platform node",
     "plugin": "claude plugin validate plugin && claude plugin test plugin",
-    "vscode:uninstall": "node ./dist/uninstall.cjs"
+    "vscode:uninstall": "node ./dist/uninstall.cjs",
+    "vscode:prepublish": "pnpm build",
+    "package": "vsce package --no-dependencies --out dist/claude-usage-bar.vsix",
+    "publish": "vsce publish --no-dependencies --packagePath dist/claude-usage-bar.vsix && ovsx publish dist/claude-usage-bar.vsix"
   },
   "dependencies": {
     "zod": "catalog:runtime"
@@ -31,8 +54,10 @@
   "devDependencies": {
     "@anthropic-ai/claude-code": "catalog:plugin",
     "@types/node": "catalog:tooling",
-    "@types/vscode": "catalog:editor",
+    "@types/vscode": "1.140.0",
+    "@vscode/vsce": "catalog:publish",
     "lefthook": "catalog:tooling",
+    "ovsx": "catalog:publish",
     "oxfmt": "catalog:lint",
     "oxlint": "catalog:lint",
     "oxlint-tsgolint": "catalog:lint",
@@ -53,6 +78,11 @@
   "extensionDependencies": [
     "anthropic.claude-code"
   ],
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1e1b3a",
+    "theme": "dark"
+  },
   "engines": {
     "node": ">=26",
     "vscode": "^1.140.0"

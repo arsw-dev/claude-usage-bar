@@ -68,9 +68,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm plugin
 
-      - name: Build
+      # Builds it too (vscode:prepublish), and checks the manifest as the marketplaces will
+      - name: Package
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: pnpm build
+        run: pnpm package
 
       - name: Install actionlint
         id: actionlint
