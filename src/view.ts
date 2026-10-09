@@ -98,7 +98,7 @@ const levelOf = (percent: number): Level =>
 const viewOf = (reading: Reading | undefined, now: number): View => {
   if (reading === undefined || reading.limits.length === 0) {
     return {
-      text: 'Claude usage: no reading',
+      text: 'Claude Usage: no reading',
       tooltip: 'Claude Code writes a reading after its next reply (Pro or Max plans only)',
       level: 'ok',
     };

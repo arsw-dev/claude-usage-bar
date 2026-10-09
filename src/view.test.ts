@@ -59,7 +59,7 @@ describe('viewOf', () => {
   });
 
   it('says there is no reading before Claude Code has written one', () => {
-    assert.equal(viewOf(undefined, NOW).text, 'Claude usage: no reading');
-    assert.equal(viewOf({ updatedAt: NOW, limits: [] }, NOW).text, 'Claude usage: no reading');
+    assert.equal(viewOf(undefined, NOW).text, 'Claude Usage: no reading');
+    assert.equal(viewOf({ updatedAt: NOW, limits: [] }, NOW).text, 'Claude Usage: no reading');
   });
 });

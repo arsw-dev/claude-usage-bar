@@ -21,7 +21,7 @@ const BACKGROUNDS: Readonly<Record<Level, string | undefined>> = {
 const activate = (context: ExtensionContext): void => {
   // Left, after everything else there (the lowest priority), away from the extensions' items on the right
   const item = window.createStatusBarItem('claude-usage-bar', StatusBarAlignment.Left, -1000);
-  item.name = 'Claude usage';
+  item.name = 'Claude Usage';
 
   let last: Reading | undefined;
 
