@@ -1,0 +1,32 @@
+name: Marketplace Profile
+
+# Run by hand, from main: prints the Visual Studio profile ID of the Azure identity the release workflow publishes as.
+# The Marketplace publisher adds that ID as a member (Contributor) so the identity can publish; needed once, and again
+# only if the identity is replaced. It runs in marketplace-publish, which the identity trusts, so it waits for approval
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  profile:
+    name: Profile
+    runs-on: ubuntu-latest
+    environment: marketplace-publish
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Sign In to Azure
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      # 499b84ac-… is Azure DevOps' resource ID, which the Marketplace signs in through
+      - name: Print the Profile ID
+        run: |
+          az rest --uri https://app.vssps.visualstudio.com/_apis/profile/profiles/me \
+            --resource 499b84ac-1321-427f-aa17-267ca6975798 --query id --output tsv
