@@ -30,6 +30,8 @@ describe('readReading', () => {
     return path;
   };
 
+  const withLimits = (limits: unknown[]) => written(JSON.stringify({ version: 1, updatedAt: 1, limits }));
+
   it('reads the windows and when they were reported', async () => {
     const path = await written(JSON.stringify({ version: 1, updatedAt: 1_791_514_763_510, limits: LIMITS }));
 
@@ -50,5 +52,15 @@ describe('readReading', () => {
 
     assert.equal(await readReading(newer), undefined);
     assert.equal(await readReading(unversioned), undefined);
+  });
+
+  it('leaves a reading unread that could draw something other than usage', async () => {
+    const window = LIMITS[0];
+
+    assert.equal(await readReading(await withLimits([{ ...window, kind: '$(sync~spin) Installing' }])), undefined);
+    assert.equal(await readReading(await withLimits([{ ...window, kind: 'x'.repeat(41) }])), undefined);
+    assert.equal(await readReading(await withLimits([{ ...window, percentUsed: 1e300 }])), undefined);
+    assert.equal(await readReading(await withLimits([{ ...window, percentUsed: -5 }])), undefined);
+    assert.equal(await readReading(await withLimits(Array.from({ length: 9 }, () => window))), undefined);
   });
 });

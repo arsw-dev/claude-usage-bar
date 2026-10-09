@@ -27,10 +27,9 @@ const activate = (context: ExtensionContext): void => {
   item.name = 'Claude Usage';
 
   let last: Reading | undefined;
+  let reading = false;
 
-  const refresh = async () => {
-    last = (await readReading()) ?? last;
-
+  const draw = () => {
     const setupView = setup.view();
 
     if (last === undefined && setupView !== undefined) {
@@ -51,8 +50,26 @@ const activate = (context: ExtensionContext): void => {
     item.command = undefined;
   };
 
+  // One read at a time: a file that never finishes reading holds one of the extension host's few I/O threads, not one
+  // every tick
+  const refresh = async () => {
+    if (reading) {
+      return;
+    }
+
+    reading = true;
+
+    try {
+      last = (await readReading()) ?? last;
+    } finally {
+      reading = false;
+    }
+
+    draw();
+  };
+
   const claude = findClaude(extensions.getExtension('anthropic.claude-code')?.extensionPath);
-  const setup = createSetup(context, claude, () => void refresh());
+  const setup = createSetup(context, claude, draw);
 
   void refresh();
   item.show();
