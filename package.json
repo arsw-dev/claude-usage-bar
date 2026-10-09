@@ -41,6 +41,9 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "extensionDependencies": [
+    "anthropic.claude-code"
+  ],
   "engines": {
     "node": ">=26",
     "vscode": "^1.140.0"
