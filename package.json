@@ -14,19 +14,21 @@
   "main": "./dist/extension.cjs",
   "scripts": {
     "prepare": "lefthook install",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm plugin",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "typecheck": "tsc",
     "test": "node --test \"src/**/*.test.ts\"",
-    "build": "rolldown src/extension.ts --file dist/extension.cjs --format cjs --platform node --external vscode"
+    "build": "rolldown src/extension.ts --file dist/extension.cjs --format cjs --platform node --external vscode",
+    "plugin": "claude plugin validate plugin && claude plugin test plugin"
   },
   "dependencies": {
     "zod": "catalog:runtime"
   },
   "devDependencies": {
+    "@anthropic-ai/claude-code": "catalog:plugin",
     "@types/node": "catalog:tooling",
     "@types/vscode": "catalog:editor",
     "lefthook": "catalog:tooling",

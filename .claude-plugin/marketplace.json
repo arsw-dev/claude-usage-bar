@@ -1,0 +1,5 @@
+{
+  "name": "claude-usage-bar",
+  "owner": { "name": "Aryan Swaminath" },
+  "plugins": [{ "name": "usage-bar", "source": "./plugin" }]
+}

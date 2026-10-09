@@ -10,6 +10,8 @@ pre-commit:
       run: pnpm typecheck
     test:
       run: pnpm test
+    plugin:
+      run: pnpm plugin
 
 # Before every push: never to main, which only ever gets squash merges of pull requests. git hands the hook a line per
 # ref it pushes: local ref, its sha, remote ref, its sha

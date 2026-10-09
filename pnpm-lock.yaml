@@ -23,6 +23,10 @@ catalogs:
     oxlint-tsgolint:
       specifier: 7.0.2003
       version: 7.0.2003
+  plugin:
+    '@anthropic-ai/claude-code':
+      specifier: 2.1.291
+      version: 2.1.291
   runtime:
     zod:
       specifier: 4.6.5
@@ -46,6 +50,9 @@ importers:
         specifier: catalog:runtime
         version: 4.6.5
     devDependencies:
+      '@anthropic-ai/claude-code':
+        specifier: catalog:plugin
+        version: 2.1.291
       '@types/node':
         specifier: catalog:tooling
         version: 26.6.4
@@ -72,6 +79,55 @@ importers:
         version: 7.0.2
 
 packages:
+
+  '@anthropic-ai/claude-code-darwin-arm64@2.1.291':
+    resolution: {integrity: sha512-2Qwt+MyI0g3Ysjpj8+DSLGV8aph+OnQhYYD6wU81cU+DtIcPN9hON+nVIIN18FJO6Nro8iSbBxadFFPAD2vWUA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@anthropic-ai/claude-code-darwin-x64@2.1.291':
+    resolution: {integrity: sha512-n+UkGUkJZOLJll/A02gJKHKvxayea/7cvBlvXGXSPf0SAY3OCfdOpZvQ7VY8VVgPUl5Pqf79tLgsfF3Qj5DKcw==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@anthropic-ai/claude-code-linux-arm64-musl@2.1.291':
+    resolution: {integrity: sha512-9lZ9ZElxmdRqV0elhibKbXwoJHry5wRGflsdKf7LhVopKZT/wsGqIFgt6mw8NZDQ/BGUX5FgF9Yn60dZ5kOtFQ==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@anthropic-ai/claude-code-linux-arm64@2.1.291':
+    resolution: {integrity: sha512-lxwNznyTqaCXrOu+XSj1LowJaUbjmtk7VvL/V0SW67mLAVl0kJYBJUs9mKfN/T1xBXCFowtBLW5mhbMQY+Z0cQ==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@anthropic-ai/claude-code-linux-x64-musl@2.1.291':
+    resolution: {integrity: sha512-coGTrqEklCLBed+i2FXzg/3IqHIPd9/mGTinEqO8IlmKk8qOqFYTf5zQzJ9m3/T+p9Qt2m1314/S00gOU/Femw==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@anthropic-ai/claude-code-linux-x64@2.1.291':
+    resolution: {integrity: sha512-i0YJxdh8yIbRQ9x1gsbB24oVWhs7BARNRIHoRjXw0CeD4Yp5JoVpQlbfPIA9Rg3UhkcH6d3StYAFrSt3l2m5HA==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@anthropic-ai/claude-code-win32-arm64@2.1.291':
+    resolution: {integrity: sha512-6tp7s62DK/6J/cymBjVknN1gLUX3zx9F4hsOqSfxwaA6Ve/jTAAdz6twypH+sFy2d339ByLmhIA20gTjsiqk5Q==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@anthropic-ai/claude-code-win32-x64@2.1.291':
+    resolution: {integrity: sha512-Gv2ao/gJkZ781I9PvbVUoLqI1NqrIWhs4AKbI2hPwPhOuACQeY3EbAOwZL17OtsnuovCn/djYx4sJc9C6oU1SA==}
+    cpu: [x64]
+    os: [win32]
+
+  '@anthropic-ai/claude-code@2.1.291':
+    resolution: {integrity: sha512-iLejshKVpXWrcniWFdxZFOpRFSSzhUi9K5+yeeo7KZbTXQg/sYsNs20O1xjF0s9/C7eV8MIQCmFWfdEKXQmHGA==}
+    engines: {node: '>=22.0.0'}
+    hasBin: true
 
   '@oxc-project/types@0.152.0':
     resolution: {integrity: sha512-oM/5rLBm2tPkg0iBgkH/FOeR3PCDpY19GTgAZjMFM8h9WI9VW7cLgzp6nwtarYKmovavIQZ+Fe/RKX/8C8O/Rw==}
@@ -680,6 +736,41 @@ packages:
     resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
 snapshots:
+
+  '@anthropic-ai/claude-code-darwin-arm64@2.1.291':
+    optional: true
+
+  '@anthropic-ai/claude-code-darwin-x64@2.1.291':
+    optional: true
+
+  '@anthropic-ai/claude-code-linux-arm64-musl@2.1.291':
+    optional: true
+
+  '@anthropic-ai/claude-code-linux-arm64@2.1.291':
+    optional: true
+
+  '@anthropic-ai/claude-code-linux-x64-musl@2.1.291':
+    optional: true
+
+  '@anthropic-ai/claude-code-linux-x64@2.1.291':
+    optional: true
+
+  '@anthropic-ai/claude-code-win32-arm64@2.1.291':
+    optional: true
+
+  '@anthropic-ai/claude-code-win32-x64@2.1.291':
+    optional: true
+
+  '@anthropic-ai/claude-code@2.1.291':
+    optionalDependencies:
+      '@anthropic-ai/claude-code-darwin-arm64': 2.1.291
+      '@anthropic-ai/claude-code-darwin-x64': 2.1.291
+      '@anthropic-ai/claude-code-linux-arm64': 2.1.291
+      '@anthropic-ai/claude-code-linux-arm64-musl': 2.1.291
+      '@anthropic-ai/claude-code-linux-x64': 2.1.291
+      '@anthropic-ai/claude-code-linux-x64-musl': 2.1.291
+      '@anthropic-ai/claude-code-win32-arm64': 2.1.291
+      '@anthropic-ai/claude-code-win32-x64': 2.1.291
 
   '@oxc-project/types@0.152.0': {}
 
