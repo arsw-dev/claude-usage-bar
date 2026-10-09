@@ -2,11 +2,11 @@
 // redrawn from the reading on a timer, so the countdowns move between replies and a new reading shows within seconds.
 // Until there's a reading, one item shows where setting up stands (setup.ts)
 
-import { commands, extensions, StatusBarAlignment, ThemeColor, window } from 'vscode';
+import { commands, env, extensions, StatusBarAlignment, ThemeColor, window } from 'vscode';
 
-import { findClaude } from './claude.ts';
+import { findClaude, installedPlugin, installPlugin, updatePlugin } from './claude.ts';
 import { readReading } from './reading.ts';
-import { createSetup, explain, EXPLAIN, SET_UP } from './setup.ts';
+import { createSetup, EXPLAIN, SET_UP } from './setup.ts';
 import { WAITING, windowViewsOf } from './view.ts';
 
 import type { Level, Reading, View } from './view.ts';
@@ -105,7 +105,22 @@ const activate = (context: ExtensionContext): void => {
   };
 
   const claude = findClaude(extensions.getExtension('anthropic.claude-code')?.extensionPath);
-  const setup = createSetup(context, claude, draw);
+  const setup = createSetup({
+    version: context.extension.packageJSON.version,
+    state: context.globalState,
+    plugin: {
+      installed: async () => installedPlugin(await claude),
+      install: async () => installPlugin(await claude),
+      update: async () => updatePlugin(await claude),
+    },
+    ui: {
+      ask: (message, ...buttons) => window.showInformationMessage(message, ...buttons),
+      fail: message => void window.showErrorMessage(message),
+      pick: async (title, rows) => (await window.showQuickPick(rows, { title }))?.label,
+      copy: text => env.clipboard.writeText(text),
+    },
+    changed: draw,
+  });
 
   void refresh();
   void setup.check();
@@ -114,7 +129,7 @@ const activate = (context: ExtensionContext): void => {
   context.subscriptions.push(
     { dispose: () => items.forEach(item => item.dispose()) },
     commands.registerCommand(SET_UP, setup.install),
-    commands.registerCommand(EXPLAIN, explain),
+    commands.registerCommand(EXPLAIN, setup.explain),
     { dispose: () => clearInterval(timer) },
   );
 };
