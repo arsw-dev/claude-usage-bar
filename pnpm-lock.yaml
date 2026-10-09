@@ -4,27 +4,49 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  lint:
+    oxfmt:
+      specifier: 0.71.0
+      version: 0.71.0
+    oxlint:
+      specifier: 1.86.0
+      version: 1.86.0
+    oxlint-tsgolint:
+      specifier: 7.0.2003
+      version: 7.0.2003
+  tooling:
+    '@types/node':
+      specifier: 26.6.4
+      version: 26.6.4
+    lefthook:
+      specifier: 2.1.16
+      version: 2.1.16
+    typescript:
+      specifier: 7.0.2
+      version: 7.0.2
+
 importers:
 
   .:
     devDependencies:
       '@types/node':
-        specifier: 26.6.4
+        specifier: catalog:tooling
         version: 26.6.4
       lefthook:
-        specifier: 2.1.16
+        specifier: catalog:tooling
         version: 2.1.16
       oxfmt:
-        specifier: 0.71.0
+        specifier: catalog:lint
         version: 0.71.0
       oxlint:
-        specifier: 1.86.0
+        specifier: catalog:lint
         version: 1.86.0(oxlint-tsgolint@7.0.2003)
       oxlint-tsgolint:
-        specifier: 7.0.2003
+        specifier: catalog:lint
         version: 7.0.2003
       typescript:
-        specifier: 7.0.2
+        specifier: catalog:tooling
         version: 7.0.2
 
 packages:

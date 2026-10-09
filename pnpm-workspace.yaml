@@ -1,4 +1,4 @@
-# Settings only: the repo is one package, the extension
+# The repo is one package, the extension: this file holds pnpm's settings and the catalogs
 
 # Supply chain: a release must be 3 days old before it's installed, and a package's trust level (provenance, trusted
 # publishing) can't drop between versions
@@ -8,7 +8,26 @@ trustPolicy: no-downgrade
 blockExoticSubdeps: true
 # Install fails when a dependency wants to run install scripts nobody approved in allowBuilds
 strictDepBuilds: true
+
+# Every dependency's version comes from a catalog here. A version that doesn't match its catalog is an error, and entries
+# nothing uses any more are removed. New ones are added with `pnpm add <name> --save-catalog-name=<area>`, saved as the
+# exact version
+catalogMode: strict
+catalogPrune: true
 savePrefix: ''
+
+catalogs:
+  # Linting and formatting
+  lint:
+    oxfmt: 0.71.0
+    oxlint: 1.86.0
+    # oxlint's type-aware rules, on TypeScript's own checker
+    oxlint-tsgolint: 7.0.2003
+  # The language, its Node types, and the git hooks
+  tooling:
+    '@types/node': 26.6.4
+    lefthook: 2.1.16
+    typescript: 7.0.2
 
 allowBuilds:
   lefthook: false # would install the git hooks itself; `pnpm install` runs `lefthook install` (prepare) instead
