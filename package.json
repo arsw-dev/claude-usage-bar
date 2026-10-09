@@ -38,6 +38,14 @@
     "rolldown": "catalog:build",
     "typescript": "catalog:tooling"
   },
+  "contributes": {
+    "commands": [
+      {
+        "command": "claude-usage-bar.setUp",
+        "title": "Usage Bar: Install the Claude Code Plugin"
+      }
+    ]
+  },
   "activationEvents": [
     "onStartupFinished"
   ],
