@@ -4,7 +4,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
-import { findClaude, installedVersion, installPlugin, isOlder, updatePlugin } from './claude.ts';
+import {
+  claudeCodeIn,
+  findClaude,
+  installedVersion,
+  installPlugin,
+  isOlder,
+  uninstallPlugin,
+  updatePlugin,
+} from './claude.ts';
 
 let dir = '';
 
@@ -16,17 +24,44 @@ after(async () => {
   await rm(dir, { recursive: true });
 });
 
-// A stand-in for the claude binary: it notes the arguments of each call, a line each, and prints the answer it's handed
-const fakeClaude = async (answer: unknown) => {
+// A stand-in for the claude binary: it notes the arguments of each call, a line each, and prints the answer it's handed,
+// after any progress lines
+const fakeClaude = async (answer: unknown, progress = '') => {
   const folder = await mkdtemp(join(dir, 'fake-'));
   const binary = join(folder, 'claude');
 
-  await writeFile(join(folder, 'answer.json'), JSON.stringify(answer));
+  await writeFile(join(folder, 'answer.json'), progress + JSON.stringify(answer));
   await writeFile(binary, `#!/bin/sh\necho "$@" >> "${folder}/args"\ncat "${folder}/answer.json"\n`);
   await chmod(binary, 0o755);
 
   return { binary, args: async () => (await readFile(join(folder, 'args'), 'utf8')).trim() };
 };
+
+describe('claudeCodeIn', () => {
+  it('finds the newest Claude Code among the installed extensions', async () => {
+    const extensions = await mkdtemp(join(dir, 'extensions-'));
+
+    await Promise.all(
+      [
+        'anthropic.claude-code-2.1.293-darwin-arm64',
+        'anthropic.claude-code-2.1.295-darwin-arm64',
+        'anthropic.claude-code-2.1.30-darwin-arm64',
+        'arsw.claude-usage-bar-1.0.0',
+      ].map(name => mkdir(join(extensions, name))),
+    );
+
+    assert.equal(await claudeCodeIn(extensions), join(extensions, 'anthropic.claude-code-2.1.295-darwin-arm64'));
+  });
+
+  it('finds none without Claude Code, or without the folder', async () => {
+    const extensions = await mkdtemp(join(dir, 'extensions-'));
+
+    await mkdir(join(extensions, 'arsw.claude-usage-bar-1.0.0'));
+
+    assert.equal(await claudeCodeIn(extensions), undefined);
+    assert.equal(await claudeCodeIn(join(dir, 'missing')), undefined);
+  });
+});
 
 describe('findClaude', () => {
   it('runs the binary the Claude Code extension bundles', async () => {
@@ -102,5 +137,17 @@ describe('versions', () => {
     const plugin = JSON.parse(await readFile(join('plugin', '.claude-plugin', 'plugin.json'), 'utf8'));
 
     assert.equal(plugin.version, extension.version);
+  });
+});
+
+describe('uninstallPlugin', () => {
+  it('uninstalls the plugin, then removes the marketplace, each answering after its progress', async () => {
+    const claude = await fakeClaude({ outcome: 'ok' }, 'Removing…\n');
+
+    await uninstallPlugin(claude.binary);
+    assert.equal(
+      await claude.args(),
+      'plugin uninstall usage-bar@claude-usage-bar --json\nplugin marketplace remove claude-usage-bar --json',
+    );
   });
 });
