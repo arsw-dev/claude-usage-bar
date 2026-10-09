@@ -1,0 +1,14 @@
+{
+  // F5: build the extension, then open a window that runs it from this folder
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.cjs"],
+      "preLaunchTask": "build"
+    }
+  ]
+}

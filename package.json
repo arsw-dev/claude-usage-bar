@@ -11,6 +11,7 @@
   },
   "publisher": "arsw",
   "type": "module",
+  "main": "./dist/extension.cjs",
   "scripts": {
     "prepare": "lefthook install",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
@@ -19,19 +20,25 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "typecheck": "tsc",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "build": "rolldown src/extension.ts --file dist/extension.cjs --format cjs --platform node --external vscode"
   },
   "dependencies": {
     "zod": "catalog:runtime"
   },
   "devDependencies": {
     "@types/node": "catalog:tooling",
+    "@types/vscode": "catalog:editor",
     "lefthook": "catalog:tooling",
     "oxfmt": "catalog:lint",
     "oxlint": "catalog:lint",
     "oxlint-tsgolint": "catalog:lint",
+    "rolldown": "catalog:build",
     "typescript": "catalog:tooling"
   },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "engines": {
     "node": ">=26",
     "vscode": "^1.140.0"
