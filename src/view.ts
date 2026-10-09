@@ -21,8 +21,9 @@ type View = {
   level: Level;
 };
 
-// A window's item, by its kind, with the name VS Code lists it under in the status bar's menu
-type WindowView = View & { kind: string; name: string };
+// A window's item, by its kind, with the name VS Code lists it under in the status bar's menu, and its place among the
+// others
+type WindowView = View & { kind: string; name: string; order: number };
 
 const MINUTE = 60_000;
 
@@ -96,7 +97,7 @@ const viewOfWindow = (window: UsageWindow, updated: string, now: number): Window
   const label = LABELS[window.kind] ?? { short: window.kind, long: window.kind, name: window.kind };
   const left = msLeft(window, now);
   const percent = Math.round(window.percentUsed);
-  const named = { kind: window.kind, name: label.name };
+  const named = { kind: window.kind, name: label.name, order: rank(window.kind) };
 
   if (left !== undefined && left <= 0) {
     return {

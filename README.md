@@ -10,8 +10,8 @@ Your Claude Code 5-hour and weekly usage, always in VS Code's status bar. No mor
 5h ▰▰▰▰▰▰▱▱▱▱ 62% · 48m   7d ▰▰▰▰▰▰▰▱▱▱ 73% · 5d 3h
 ```
 
-- **Each window** your plan has: the 5-hour window and the week, how much of each you've used, and how long until it
-  resets.
+- **Each window** your plan has: the 5-hour window and the week (and a spend limit, if your organization sets one), how
+  much of each you've used, and how long until it resets.
 - **Yellow from 75%, red from 90%,** on the window that's filling up.
 - **Hover** for the details and when Claude Code last reported them.
 
@@ -30,15 +30,17 @@ Claude Code learns your usage limits from Claude's replies, but its VS Code pane
 small Claude Code plugin that saves them to `~/.claude/usage-bar.json` after each reply, and the status bar shows that
 file.
 
-- **One click to set up.** The extension runs Claude Code's own `claude plugin install`, which fetches the plugin from
-  this repo. It's updated with the extension and removed when you uninstall it.
+- **One click to set up.** The extension runs Claude Code's own `claude plugin` commands, which fetch the plugin from
+  this repo. It's updated with the extension, and uninstalling the extension removes it and the file.
 - **Only what Claude Code already knows.** Writing that one file is all the plugin does
-  ([`plugin/hooks/register.ts`](plugin/hooks/register.ts), about 40 lines), and the extension only reads it.
+  ([`plugin/hooks/register.ts`](plugin/hooks/register.ts), about 50 lines), and the extension reads it.
 
 ## Known limitations
 
 - **Your usage shows after Claude replies.** Claude Code only learns your limits from its replies, so right after
   installing there's nothing to show until the next one.
+- **Usage from elsewhere shows with your next reply here.** Claude on the web or another computer counts toward the same
+  limits, but this bar only learns of it from Claude Code's next reply in VS Code.
 - **A moved Claude config folder.** If you set `CLAUDE_CONFIG_DIR` in your shell and start VS Code from the Dock, VS
   Code doesn't see it, and the plugin installs to `~/.claude` instead, where Claude Code won't load it. Start VS Code
   from that shell (`code .`) and install from there.

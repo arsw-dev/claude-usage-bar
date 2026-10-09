@@ -6,9 +6,10 @@
 import { isOlder } from './claude.ts';
 
 // Ready means the plugin is in and the item shows the reading as it is
-type Setup = 'ready' | 'no-cli' | 'needs-plugin' | 'turned-off' | 'installing' | 'installed';
+type Setup = 'ready' | 'no-cli' | 'needs-plugin' | 'list-failed' | 'turned-off' | 'installing' | 'installed';
 
-type SetupView = { text: string; tooltip: string; command?: string };
+// A view that replaces the reading: the plugin is off or gone, so a reading left behind no longer moves
+type SetupView = { text: string; tooltip: string; command?: string; replacesReading?: true };
 
 type InstalledPlugin = { version: string; enabled: boolean };
 
@@ -41,6 +42,12 @@ const DECLINED_KEY = 'setUpDeclined';
 
 const RELOAD = '/reload-plugins';
 
+const SET_UP_VIEW: SetupView = {
+  text: '$(gear) Claude Usage: set up',
+  tooltip: 'Install the Claude Code plugin that reports your usage',
+  command: SET_UP,
+};
+
 const SETUP_VIEWS: Readonly<Record<Exclude<Setup, 'ready'>, SetupView>> = {
   // The Claude Code extension is always there (it's a dependency), but its CLI wasn't where it keeps it, and there's no
   // claude on the PATH either
@@ -48,17 +55,19 @@ const SETUP_VIEWS: Readonly<Record<Exclude<Setup, 'ready'>, SetupView>> = {
     text: "Claude Usage: can't find Claude Code's CLI",
     tooltip: "Update the Claude Code extension, or install Claude Code's CLI, then reload the window",
   },
-  'needs-plugin': {
-    text: '$(gear) Claude Usage: set up',
-    tooltip: 'Install the Claude Code plugin that reports your usage',
-    command: SET_UP,
-  },
+  'needs-plugin': { ...SET_UP_VIEW, replacesReading: true },
+  'list-failed': SET_UP_VIEW,
   'turned-off': {
     text: '$(gear) Claude Usage: plugin turned off',
     tooltip: 'The plugin that reports your usage is turned off in Claude Code. Click to turn it on',
     command: SET_UP,
+    replacesReading: true,
   },
-  installing: { text: '$(sync~spin) Claude Usage: installing', tooltip: 'Installing the Claude Code plugin' },
+  installing: {
+    text: '$(sync~spin) Claude Usage: installing',
+    tooltip: 'Installing the Claude Code plugin',
+    replacesReading: true,
+  },
   installed: {
     text: '$(check) Claude Usage: shows after next reply',
     tooltip: `Your usage appears after Claude's next reply. In a chat that was already open, run ${RELOAD} first`,
@@ -147,31 +156,47 @@ const createSetup = ({ version, state, plugin, ui, changed }: SetupDeps) => {
     }
   };
 
-  // At startup. A claude that won't start means no CLI; one that fails otherwise is treated as no plugin, and
-  // installing says why. A plugin turned off is left off until the item is clicked
+  // At startup. A claude that won't start means no CLI. One that fails otherwise offers the plugin, and installing says
+  // why, but leaves the reading showing: the plugin may well be in. A plugin turned off is left off until the item is
+  // clicked
   const check = async () => {
-    try {
-      const installed = await plugin.installed();
+    const listed = await plugin.installed().then(
+      installed => ({ installed }),
+      (error: unknown) => ({ error }),
+    );
 
-      if (installed !== undefined) {
-        await update(installed.version);
+    // An install started while listing (the Command Palette, a click) is under way, and says how it went
+    if (installing !== undefined) {
+      return;
+    }
 
-        if (!installed.enabled) {
-          set('turned-off');
-        }
+    if ('error' in listed) {
+      const { error } = listed;
 
-        return;
-      }
-    } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         set('no-cli');
 
         return;
       }
+
+      set('list-failed');
+      await offer();
+
+      return;
     }
 
-    set('needs-plugin');
-    await offer();
+    if (listed.installed === undefined) {
+      set('needs-plugin');
+      await offer();
+
+      return;
+    }
+
+    await update(listed.installed.version);
+
+    if (!listed.installed.enabled) {
+      set('turned-off');
+    }
   };
 
   return { view: () => (setup === 'ready' ? undefined : SETUP_VIEWS[setup]), check, install, explain };

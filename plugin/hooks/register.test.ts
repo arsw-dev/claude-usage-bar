@@ -62,16 +62,23 @@ test('never overwrites a reading with an empty one, or when only the context mov
   expect(writes).toEqual([]);
 });
 
-// Only Windows sets USERPROFILE, and there Node's home folder, where the extension reads, is that and never HOME
-test('writes to the user profile over HOME, as the extension reads on Windows', async ($, on) => {
-  const writes = engine(on, LIMITS, { env: { HOME: '/home/me', USERPROFILE: '/profiles/me' } });
+// Node's home folder, where the extension reads, is USERPROFILE on Windows and HOME elsewhere, whatever else is set
+test('writes to the user profile on Windows, even with a HOME set', async ($, on) => {
+  const writes = engine(on, LIMITS, { env: { OS: 'Windows_NT', HOME: '/home/me', USERPROFILE: '/profiles/me' } });
 
   await $.session.start(START);
   expect(writes.map(w => w.path)).toEqual(['/profiles/me/.claude/usage-bar.json']);
 });
 
+test('writes to HOME elsewhere, even with a USERPROFILE passed through from Windows, as WSL can', async ($, on) => {
+  const writes = engine(on, LIMITS, { env: { HOME: '/home/me', USERPROFILE: '/mnt/c/Users/me' } });
+
+  await $.session.start(START);
+  expect(writes.map(w => w.path)).toEqual(['/home/me/.claude/usage-bar.json']);
+});
+
 test('writes nothing for a home folder that is empty or relative', async ($, on) => {
-  const writes = engine(on, LIMITS, { env: { HOME: 'me', USERPROFILE: '' } });
+  const writes = engine(on, LIMITS, { env: { HOME: 'me' } });
 
   await $.session.start(START);
   await $.session.measure({ context: CONTEXT, rateLimits: LIMITS, changed: ['rateLimits'] });
