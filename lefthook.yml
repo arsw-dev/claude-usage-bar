@@ -1,0 +1,22 @@
+# Before every commit: `pnpm check`'s steps, in parallel. Installed by `pnpm install` (the prepare script)
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      run: pnpm lint
+    format:
+      run: pnpm format:check
+    typecheck:
+      run: pnpm typecheck
+    test:
+      run: pnpm test
+
+# Before every push: never to main, which only ever gets squash merges of pull requests. git hands the hook a line per
+# ref it pushes: local ref, its sha, remote ref, its sha
+pre-push:
+  commands:
+    not-main:
+      use_stdin: true
+      run: |
+        awk '$3 == "refs/heads/main" { main = 1 }
+          END { if (main) { print "Not to main: push a branch and open a pull request" > "/dev/stderr"; exit 1 } }'

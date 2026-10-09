@@ -1,0 +1,79 @@
+name: CI
+
+# What `pnpm check` and the pre-commit hook run, and the workflows themselves. "CI Result" is the check the ruleset on
+# main requires. One job, on pull requests only, and not while a pull request is a draft: it runs once one is marked
+# ready, then on each push
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ci:
+    name: CI Result
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+
+    # Each step runs even when one before it failed, so one run shows every problem
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The version in package.json's packageManager
+      - name: Set Up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Set Up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        id: install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm lint
+
+      - name: Format
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm format:check
+
+      - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm typecheck
+
+      - name: Test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm test
+
+      - name: Install actionlint
+        id: actionlint
+        if: ${{ !cancelled() }}
+        env:
+          VERSION: 1.7.12
+          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          curl -sSfLo "$RUNNER_TEMP/actionlint.tar.gz" "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz"
+          echo "${SHA256}  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+
+      - name: Lint Workflows
+        if: ${{ !cancelled() && steps.actionlint.outcome == 'success' }}
+        run: '"$RUNNER_TEMP/actionlint" -color .github/workflows/*.yml'
