@@ -15,6 +15,10 @@ Your Claude Code 5-hour and weekly usage, always in VS Code's status bar. No mor
 - **Yellow from 75%, red from 90%,** on the window that's filling up.
 - **Hover** for the details and when Claude Code last reported them.
 
+![The 5-hour window in yellow at 78%, the week at 63%](images/screenshot-yellow.png)
+
+![The 5-hour window in red at 94%, the week in yellow at 81%](images/screenshot-red.png)
+
 ## Getting started
 
 1. **Install the extension.** VS Code installs Claude Code with it if you don't have it yet.
