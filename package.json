@@ -1,6 +1,6 @@
 {
-  "name": "claude-usage-bar",
-  "displayName": "Usage Bar for Claude Code",
+  "name": "claude-code-usage-bar",
+  "displayName": "Usage Bar for Claude",
   "version": "1.0.0",
   "private": true,
   "description": "Your Claude Code 5-hour and weekly usage, always in VS Code's status bar",
