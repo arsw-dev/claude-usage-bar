@@ -1,4 +1,4 @@
-# Usage Bar for Claude Code
+# Usage Bar for Claude
 
 Your Claude Code 5-hour and weekly usage, always in VS Code's status bar. No more typing `/usage`.
 
