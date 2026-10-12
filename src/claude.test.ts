@@ -47,7 +47,7 @@ describe('claudeCodeIn', () => {
         'anthropic.claude-code-2.1.293-darwin-arm64',
         'anthropic.claude-code-2.1.295-darwin-arm64',
         'anthropic.claude-code-2.1.30-darwin-arm64',
-        'arsw.claude-usage-bar-1.0.0',
+        'arsw.claude-code-usage-bar-1.0.0',
       ].map(name => mkdir(join(extensions, name))),
     );
 
@@ -57,7 +57,7 @@ describe('claudeCodeIn', () => {
   it('finds none without Claude Code, or without the folder', async () => {
     const extensions = await mkdtemp(join(dir, 'extensions-'));
 
-    await mkdir(join(extensions, 'arsw.claude-usage-bar-1.0.0'));
+    await mkdir(join(extensions, 'arsw.claude-code-usage-bar-1.0.0'));
 
     assert.equal(await claudeCodeIn(extensions), undefined);
     assert.equal(await claudeCodeIn(join(dir, 'missing')), undefined);
@@ -67,7 +67,7 @@ describe('claudeCodeIn', () => {
 describe('extensionsFolderOf', () => {
   it("finds the extensions folder from a script in an extension's dist", () => {
     assert.equal(
-      extensionsFolderOf('/Users/me/.vscode/extensions/arsw.claude-usage-bar-1.0.0/dist/uninstall.cjs'),
+      extensionsFolderOf('/Users/me/.vscode/extensions/arsw.claude-code-usage-bar-1.0.0/dist/uninstall.cjs'),
       '/Users/me/.vscode/extensions',
     );
   });
