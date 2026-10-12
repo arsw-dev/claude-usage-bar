@@ -6,6 +6,7 @@ import { after, before, describe, it } from 'node:test';
 
 import {
   claudeCodeIn,
+  extensionsFolderOf,
   findClaude,
   installedPlugin,
   installPlugin,
@@ -60,6 +61,15 @@ describe('claudeCodeIn', () => {
 
     assert.equal(await claudeCodeIn(extensions), undefined);
     assert.equal(await claudeCodeIn(join(dir, 'missing')), undefined);
+  });
+});
+
+describe('extensionsFolderOf', () => {
+  it("finds the extensions folder from a script in an extension's dist", () => {
+    assert.equal(
+      extensionsFolderOf('/Users/me/.vscode/extensions/arsw.claude-usage-bar-1.0.0/dist/uninstall.cjs'),
+      '/Users/me/.vscode/extensions',
+    );
   });
 });
 
@@ -136,6 +146,15 @@ describe('installPlugin', () => {
     const claude = await fakeClaude({ outcome: 'failed', message: 'Marketplace file not found' }, { exitCode: 1 });
 
     await assert.rejects(installPlugin(claude.binary), { message: 'Marketplace file not found' });
+  });
+
+  it("keeps to the reason's first line, for a notification of one line", async () => {
+    const claude = await fakeClaude(
+      { outcome: 'failed', message: 'Failed to parse marketplace file\nat /tmp/marketplace.json: Invalid JSON' },
+      { exitCode: 1 },
+    );
+
+    await assert.rejects(installPlugin(claude.binary), { message: 'Failed to parse marketplace file' });
   });
 
   it("names the command, and none of the user's paths, when there's no reason", async () => {

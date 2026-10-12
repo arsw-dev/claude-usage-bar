@@ -25,21 +25,21 @@ const BACKGROUNDS: Readonly<Record<Level, string | undefined>> = {
 };
 
 // What one item shows. Its ID is what VS Code remembers it by, if it's hidden from the status bar's menu
-type Shown = { id: string; name: string; view: View; command?: string | undefined };
+type Shown = { id: string; name: string; priority: number; view: View; command?: string | undefined };
 
 const activate = (context: ExtensionContext): void => {
   // An item per window rather than one for all, since an item has one background: only the window that's filling up
   // turns yellow or red. Created as windows first appear, and kept
   const items = new Map<string, StatusBarItem>();
 
-  const itemFor = (id: string, name: string): StatusBarItem => {
+  const itemFor = (id: string, name: string, priority: number): StatusBarItem => {
     const existing = items.get(id);
 
     if (existing !== undefined) {
       return existing;
     }
 
-    const item = window.createStatusBarItem(id, StatusBarAlignment.Left, PRIORITY - items.size);
+    const item = window.createStatusBarItem(id, StatusBarAlignment.Left, priority);
     item.name = name;
     items.set(id, item);
 
@@ -47,8 +47,8 @@ const activate = (context: ExtensionContext): void => {
   };
 
   const show = (shown: Shown[]) => {
-    for (const { id, name, view, command } of shown) {
-      const item = itemFor(id, name);
+    for (const { id, name, priority, view, command } of shown) {
+      const item = itemFor(id, name, priority);
       const background = BACKGROUNDS[view.level];
 
       item.text = view.text;
@@ -70,20 +70,27 @@ const activate = (context: ExtensionContext): void => {
   let last: Reading | undefined;
   let reading = false;
 
+  // The windows after the setup item, in their own order (5-hour, weekly, then the rest), whichever appeared first
   const draw = () => {
-    const windows = windowViewsOf(last, Date.now());
+    const setupView = setup.view();
+    const windows = setupView?.replacesReading === true ? [] : windowViewsOf(last, Date.now());
 
     if (windows.length > 0) {
-      show(windows.map(view => ({ id: `claude-usage-bar.${view.kind}`, name: `Claude Usage: ${view.name}`, view })));
+      show(
+        windows.map(view => ({
+          id: `claude-usage-bar.${view.kind}`,
+          name: `Claude Usage: ${view.name}`,
+          priority: PRIORITY - 1 - view.order,
+          view,
+        })),
+      );
 
       return;
     }
 
-    const setupView = setup.view();
-
     const view = setupView === undefined ? WAITING : { ...setupView, level: 'ok' as const };
 
-    show([{ id: 'claude-usage-bar', name: 'Claude Usage', view, command: setupView?.command }]);
+    show([{ id: 'claude-usage-bar', name: 'Claude Usage', priority: PRIORITY, view, command: setupView?.command }]);
   };
 
   // One read at a time: a file that never finishes reading holds one of the extension host's few I/O threads, not one

@@ -49,6 +49,7 @@ describe('windowViewsOf', () => {
     assert.deepEqual(fiveHour, {
       kind: 'five_hour',
       name: '5-Hour Window',
+      order: 0,
       text: '5h ▰▰▰▰▰▰▰▰▱▱ 83% · 18m',
       tooltip: '5-hour window: 83% used, resets in 18m\nUpdated 2m ago by Claude Code',
       level: 'warning',
@@ -56,6 +57,7 @@ describe('windowViewsOf', () => {
     assert.deepEqual(sevenDay, {
       kind: 'seven_day',
       name: 'Weekly',
+      order: 1,
       text: '7d ▰▰▰▰▰▰▱▱▱▱ 63% · 5d 1h',
       tooltip: 'Weekly: 63% used, resets in 5d 1h\nUpdated 2m ago by Claude Code',
       level: 'ok',

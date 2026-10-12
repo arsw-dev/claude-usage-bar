@@ -8,10 +8,12 @@ const READING = '.claude/usage-bar.json';
 // The file's format, which the extension checks
 const VERSION = 1;
 
-// Where the extension looks, which is Node's home folder: USERPROFILE on Windows, where it ignores a HOME some tools
-// set, and HOME everywhere else. Anything but an absolute path writes nothing, rather than somewhere unexpected
+// Where the extension looks, which is Node's home folder: USERPROFILE on Windows (which always sets OS), where it
+// ignores a HOME some tools set, and HOME everywhere else, where it ignores a USERPROFILE WSL may pass through. Anything
+// but an absolute path writes nothing, rather than somewhere unexpected
 const readingPath = async ($: EngineInterface): Promise<string | undefined> => {
-  const home = (await $.env.get('USERPROFILE')) || (await $.env.get('HOME'));
+  const isWindows = (await $.env.get('OS')) === 'Windows_NT';
+  const home = isWindows ? await $.env.get('USERPROFILE') : await $.env.get('HOME');
 
   return home !== undefined && /^(\/|[A-Za-z]:[\\/])/.test(home) ? `${home}/${READING}` : undefined;
 };

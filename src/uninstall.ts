@@ -3,16 +3,13 @@
 // a plugin left installed writes a file nothing reads, and does no harm
 
 import { rm } from 'node:fs/promises';
-import { dirname } from 'node:path';
 
-import { claudeCodeIn, findClaude, uninstallPlugin } from './claude.ts';
+import { claudeCodeIn, extensionsFolderOf, findClaude, uninstallPlugin } from './claude.ts';
 import { READING_PATH } from './reading.ts';
 
-// This script is <extensions folder>/<this extension>/dist/uninstall.cjs, so Claude Code, if it's still installed, is
-// two folders up, in whichever editor this ran in
+// Claude Code, if it's still installed, is beside this extension, in whichever editor this ran in
 const uninstall = async () => {
-  const extensionsFolder = dirname(dirname(dirname(process.argv[1] ?? '')));
-  const claude = await findClaude(await claudeCodeIn(extensionsFolder));
+  const claude = await findClaude(await claudeCodeIn(extensionsFolderOf(process.argv[1] ?? '')));
 
   // The reading first: it's quick, and VS Code may stop a script that runs long
   await rm(READING_PATH, { force: true });
